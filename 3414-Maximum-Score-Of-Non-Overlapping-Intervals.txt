@@ -1,0 +1,159 @@
+import java.util.*;
+
+class Solution {
+
+    static class Interval {
+        int l, r, w, index;
+
+        Interval(int l, int r, int w, int index) {
+            this.l = l;
+            this.r = r;
+            this.w = w;
+            this.index = index;
+        }
+    }
+
+    static class Result {
+        long score;
+        List<Integer> indices;
+
+        Result(long score, List<Integer> indices) {
+            this.score = score;
+            this.indices = indices;
+        }
+    }
+
+    public int[] maximumWeight(List<List<Integer>> intervals) {
+
+        int n = intervals.size();
+
+        Interval[] arr = new Interval[n];
+
+        for (int i = 0; i < n; i++) {
+            arr[i] = new Interval(
+                intervals.get(i).get(0),
+                intervals.get(i).get(1),
+                intervals.get(i).get(2),
+                i
+            );
+        }
+
+        // Sort by starting position
+        Arrays.sort(arr, (a, b) -> {
+            if (a.l != b.l)
+                return Integer.compare(a.l, b.l);
+            return Integer.compare(a.r, b.r);
+        });
+
+        // Find next non-overlapping interval
+        int[] next = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            next[i] = findNext(arr, i + 1, arr[i].r);
+        }
+
+        /*
+         * dp[i][k] = best result using intervals
+         * from i onwards, choosing at most k intervals.
+         */
+        Result[][] dp = new Result[n + 1][5];
+
+        // Base case: no intervals remaining
+        // We can choose nothing, regardless of k.
+        for (int k = 0; k <= 4; k++) {
+            dp[n][k] = new Result(0, new ArrayList<>());
+        }
+
+        // Base case: cannot choose any interval
+        for (int i = 0; i <= n; i++) {
+            dp[i][0] = new Result(0, new ArrayList<>());
+        }
+
+        // Fill DP backwards
+        for (int i = n - 1; i >= 0; i--) {
+
+            for (int k = 1; k <= 4; k++) {
+
+                // Option 1: Skip this interval
+                Result skip = dp[i + 1][k];
+
+                // Option 2: Take this interval
+                Result after = dp[next[i]][k - 1];
+
+                List<Integer> takeIndices =
+                    new ArrayList<>(after.indices);
+
+                takeIndices.add(arr[i].index);
+
+                // Output indices must be sorted
+                Collections.sort(takeIndices);
+
+                Result take = new Result(
+                    arr[i].w + after.score,
+                    takeIndices
+                );
+
+                dp[i][k] = better(skip, take);
+            }
+        }
+
+        // Convert answer to int[]
+        List<Integer> answer = dp[0][4].indices;
+
+        int[] result = new int[answer.size()];
+
+        for (int i = 0; i < answer.size(); i++) {
+            result[i] = answer.get(i);
+        }
+
+        return result;
+    }
+
+    // Find first interval whose start > current right
+    private int findNext(Interval[] arr, int start, int right) {
+
+        int low = start;
+        int high = arr.length;
+
+        while (low < high) {
+
+            int mid = low + (high - low) / 2;
+
+            // Strictly greater because touching boundaries overlap
+            if (arr[mid].l > right) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+
+        return low;
+    }
+
+    // Choose the result with higher score.
+    // If scores are equal, choose lexicographically smaller indices.
+    private Result better(Result a, Result b) {
+
+        if (a.score != b.score) {
+            return a.score > b.score ? a : b;
+        }
+
+        return compare(a.indices, b.indices) <= 0 ? a : b;
+    }
+
+    private int compare(List<Integer> a, List<Integer> b) {
+
+        int len = Math.min(a.size(), b.size());
+
+        for (int i = 0; i < len; i++) {
+
+            if (!a.get(i).equals(b.get(i))) {
+                return Integer.compare(a.get(i), b.get(i));
+            }
+        }
+
+        // If one is a prefix of the other,
+        // shorter one is lexicographically smaller.
+        return Integer.compare(a.size(), b.size());
+    }
+}
