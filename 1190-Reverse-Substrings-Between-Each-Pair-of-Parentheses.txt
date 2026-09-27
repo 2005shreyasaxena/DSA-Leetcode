@@ -1,0 +1,32 @@
+import java.util.*;
+
+class Solution {
+    public String reverseParentheses(String s) {
+        Stack<StringBuilder> stack = new Stack<>();
+        stack.push(new StringBuilder());
+
+        for (char ch : s.toCharArray()) {
+
+            if (ch == '(') {
+                // Start a new substring
+                stack.push(new StringBuilder());
+
+            } else if (ch == ')') {
+                // Get substring inside parentheses
+                StringBuilder current = stack.pop();
+
+                // Reverse it
+                current.reverse();
+
+                // Add it to the previous level
+                stack.peek().append(current);
+
+            } else {
+                // Add character to current substring
+                stack.peek().append(ch);
+            }
+        }
+
+        return stack.peek().toString();
+    }
+}
