@@ -1,0 +1,176 @@
+
+import java.util.*;
+
+class Solution {
+    int LOG;
+    int timer;
+    int[] tin, tout, depth;
+    int[][] up;
+    List<Integer>[] graph;
+    Fenwick bit;
+
+    public List<Boolean> palindromePath(
+            int n, int[][] edges, String s, String[] queries) {
+
+        LOG = 1;
+        while ((1 << LOG) <= n) LOG++;
+
+        graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) {
+            graph[i] = new ArrayList<>();
+        }
+
+        for (int[] e : edges) {
+            graph[e[0]].add(e[1]);
+            graph[e[1]].add(e[0]);
+        }
+
+        tin = new int[n];
+        tout = new int[n];
+        depth = new int[n];
+        up = new int[LOG][n];
+
+        // Iterative DFS to avoid stack overflow
+        int[] parent = new int[n];
+        Arrays.fill(parent, -1);
+
+        int[] stack = new int[2 * n + 5];
+        int top = 0;
+        stack[top++] = 0;
+
+        while (top > 0) {
+            int x = stack[--top];
+
+            if (x >= 0) {
+                tin[x] = timer++;
+
+                stack[top++] = ~x;
+
+                for (int v : graph[x]) {
+                    if (v == parent[x]) continue;
+
+                    parent[v] = x;
+                    depth[v] = depth[x] + 1;
+                    up[0][v] = x;
+
+                    for (int j = 1; j < LOG; j++) {
+                        up[j][v] = up[j - 1][up[j - 1][v]];
+                    }
+
+                    stack[top++] = v;
+                }
+            } else {
+                int xNode = ~x;
+                tout[xNode] = timer - 1;
+            }
+        }
+
+        bit = new Fenwick(n + 1);
+        char[] chars = s.toCharArray();
+
+        // Initialize root-to-node prefix XOR masks.
+        int[] prefix = new int[n];
+        int[] order = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            order[tin[i]] = i;
+        }
+
+        for (int i = 0; i < n; i++) {
+            int u = order[i];
+
+            if (u == 0) {
+                prefix[u] = 1 << (chars[u] - 'a');
+            } else {
+                prefix[u] = prefix[parent[u]]
+                          ^ (1 << (chars[u] - 'a'));
+            }
+
+            bit.rangeXor(tin[u], tin[u], prefix[u]);
+        }
+
+        List<Boolean> ans = new ArrayList<>();
+
+        for (String q : queries) {
+            String[] p = q.split(" ");
+
+            if (p[0].equals("update")) {
+                int u = Integer.parseInt(p[1]);
+                char c = p[2].charAt(0);
+
+                int oldMask = 1 << (chars[u] - 'a');
+                int newMask = 1 << (c - 'a');
+                int delta = oldMask ^ newMask;
+
+                if (delta != 0) {
+                    bit.rangeXor(tin[u], tout[u], delta);
+                    chars[u] = c;
+                }
+            } else {
+                int u = Integer.parseInt(p[1]);
+                int v = Integer.parseInt(p[2]);
+
+                int lca = getLCA(u, v);
+
+                int mask = bit.query(tin[u])
+                         ^ bit.query(tin[v])
+                         ^ (1 << (chars[lca] - 'a'));
+
+                ans.add((mask & (mask - 1)) == 0);
+            }
+        }
+
+        return ans;
+    }
+
+    int getLCA(int u, int v) {
+        if (tin[u] <= tin[v] && tout[v] <= tout[u]) {
+            return u;
+        }
+
+        if (tin[v] <= tin[u] && tout[u] <= tout[v]) {
+            return v;
+        }
+
+        for (int j = LOG - 1; j >= 0; j--) {
+            int a = up[j][u];
+
+            if (!(tin[a] <= tin[v] && tout[v] <= tout[a])) {
+                u = a;
+            }
+        }
+
+        return up[0][u];
+    }
+
+    static class Fenwick {
+        int[] tree;
+        int n;
+
+        Fenwick(int n) {
+            this.n = n;
+            tree = new int[n + 2];
+        }
+
+        void add(int i, int val) {
+            for (i++; i <= n; i += i & -i) {
+                tree[i] ^= val;
+            }
+        }
+
+        void rangeXor(int l, int r, int val) {
+            add(l, val);
+            add(r + 1, val);
+        }
+
+        int query(int i) {
+            int result = 0;
+
+            for (i++; i > 0; i -= i & -i) {
+                result ^= tree[i];
+            }
+
+            return result;
+        }
+    }
+}
