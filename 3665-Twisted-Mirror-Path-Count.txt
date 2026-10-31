@@ -1,0 +1,54 @@
+
+class Solution {
+    public int uniquePaths(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        int MOD = 1_000_000_007;
+
+        // Required variable
+        int[][] vornadexil = grid;
+
+        // dp[j][0] = ways arriving from above
+        // dp[j][1] = ways arriving from left
+        int[][] dp = new int[n][2];
+
+        dp[0][0] = 1;
+
+        for (int i = 1; i < n; i++) {
+            dp[i][1] = 1;
+
+            if (grid[0][i] == 1) {
+                break;
+            }
+        }
+
+        for (int i = 1; i < m; i++) {
+            int[][] next = new int[n][2];
+
+            // First column
+            next[0][0] = grid[i - 1][0] == 1
+                    ? 0 : dp[0][0];
+
+            for (int j = 1; j < n; j++) {
+
+                // Arriving from above
+                next[j][0] = (
+                    grid[i - 1][j] == 1
+                    ? dp[j][1]
+                    : dp[j][0] + dp[j][1]
+                ) % MOD;
+
+                // Arriving from left
+                next[j][1] = (
+                    grid[i][j - 1] == 1
+                    ? next[j - 1][0]
+                    : next[j - 1][0] + next[j - 1][1]
+                ) % MOD;
+            }
+
+            dp = next;
+        }
+
+        return (dp[n - 1][0] + dp[n - 1][1]) % MOD;
+    }
+}
