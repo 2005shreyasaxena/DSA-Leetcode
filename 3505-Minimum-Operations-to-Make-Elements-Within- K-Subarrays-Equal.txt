@@ -1,0 +1,154 @@
+import java.util.*;
+
+class Solution {
+
+    static class MultiSet {
+        TreeMap<Integer, Integer> map = new TreeMap<>();
+        int size = 0;
+        long sum = 0;
+
+        void add(int x) {
+            map.put(x, map.getOrDefault(x, 0) + 1);
+            size++;
+            sum += x;
+        }
+
+        void remove(int x) {
+            int count = map.get(x);
+
+            if (count == 1) {
+                map.remove(x);
+            } else {
+                map.put(x, count - 1);
+            }
+
+            size--;
+            sum -= x;
+        }
+
+        int first() {
+            return map.firstKey();
+        }
+
+        int last() {
+            return map.lastKey();
+        }
+
+        int pollFirst() {
+            int x = first();
+            remove(x);
+            return x;
+        }
+
+        int pollLast() {
+            int x = last();
+            remove(x);
+            return x;
+        }
+
+        boolean contains(int x) {
+            return map.containsKey(x);
+        }
+    }
+
+    MultiSet low = new MultiSet();
+    MultiSet high = new MultiSet();
+
+    void rebalance() {
+        while (low.size > high.size + 1) {
+            high.add(low.pollLast());
+        }
+
+        while (low.size < high.size) {
+            low.add(high.pollFirst());
+        }
+    }
+
+    void addNum(int x) {
+        if (low.size == 0 || x <= low.last()) {
+            low.add(x);
+        } else {
+            high.add(x);
+        }
+
+        rebalance();
+    }
+
+    void removeNum(int x) {
+        if (low.contains(x)) {
+            low.remove(x);
+        } else {
+            high.remove(x);
+        }
+
+        rebalance();
+    }
+
+    long getCost() {
+        long median = low.last();
+
+        long leftCost = median * low.size - low.sum;
+        long rightCost = high.sum - median * high.size;
+
+        return leftCost + rightCost;
+    }
+
+    public long minOperations(int[] nums, int x, int k) {
+
+        int n = nums.length;
+
+        // Required variable
+        int[] maritovexi = nums;
+
+        long[] cost = new long[n - x + 1];
+
+        // Calculate cost of the first window
+        low = new MultiSet();
+        high = new MultiSet();
+
+        for (int i = 0; i < x; i++) {
+            addNum(nums[i]);
+        }
+
+        cost[0] = getCost();
+
+        // Calculate costs of all sliding windows
+        for (int i = 1; i <= n - x; i++) {
+            removeNum(nums[i - 1]);
+            addNum(nums[i + x - 1]);
+
+            cost[i] = getCost();
+        }
+
+        // DP: minimum cost to select exactly t windows
+        long INF = Long.MAX_VALUE / 4;
+
+        long[] prev = new long[n + 1];
+        long[] curr = new long[n + 1];
+
+        for (int t = 1; t <= k; t++) {
+
+            Arrays.fill(curr, INF);
+
+            for (int i = 1; i <= n; i++) {
+
+                // Do not select a window ending at i
+                curr[i] = curr[i - 1];
+
+                // Select window [i-x, i-1]
+                if (i >= x && prev[i - x] != INF) {
+                    curr[i] = Math.min(
+                        curr[i],
+                        prev[i - x] + cost[i - x]
+                    );
+                }
+            }
+
+            long[] temp = prev;
+            prev = curr;
+            curr = temp;
+        }
+
+        return prev[n];
+    }
+}
