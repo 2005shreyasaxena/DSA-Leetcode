@@ -1,0 +1,76 @@
+
+import java.util.*;
+
+class Solution {
+    public int[] findSubtreeSizes(int[] parent, String s) {
+        int n = parent.length;
+
+        // Build the original tree
+        List<Integer>[] children = new ArrayList[n];
+
+        for (int i = 0; i < n; i++) {
+            children[i] = new ArrayList<>();
+        }
+
+        for (int i = 1; i < n; i++) {
+            children[parent[i]].add(i);
+        }
+
+        int[] ans = new int[n];
+        int[] prev = new int[n];
+        int[] last = new int[26];
+
+        Arrays.fill(ans, 1);
+        Arrays.fill(last, -1);
+
+        // Store DFS entry and exit events
+        int[] stack = new int[2 * n + 5];
+        int top = 0;
+
+        stack[top++] = 0;
+
+        while (top > 0) {
+            int event = stack[--top];
+
+            if (event >= 0) {
+                // Entry event
+                int u = event;
+                int idx = s.charAt(u) - 'a';
+
+                // Remember previous matching ancestor
+                prev[u] = last[idx];
+
+                // Current node becomes latest occurrence
+                last[idx] = u;
+
+                // Schedule exit event
+                stack[top++] = ~u;
+
+                // Visit children
+                for (int v : children[u]) {
+                    stack[top++] = v;
+                }
+
+            } else {
+                // Exit event (postorder)
+                int u = ~event;
+                int idx = s.charAt(u) - 'a';
+
+                // Restore previous matching ancestor
+                last[idx] = prev[u];
+
+                // Determine the final parent
+                int p = (prev[u] != -1)
+                        ? prev[u]
+                        : parent[u];
+
+                // Add subtree size to its final parent
+                if (p != -1) {
+                    ans[p] += ans[u];
+                }
+            }
+        }
+
+        return ans;
+    }
+}
