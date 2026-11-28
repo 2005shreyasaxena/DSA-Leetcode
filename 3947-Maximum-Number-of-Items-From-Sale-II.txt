@@ -1,0 +1,67 @@
+
+import java.util.*;
+
+class Solution {
+    public int maximumSaleItems(int[][] items, int budget) {
+
+        int n = items.length;
+
+        // Required variable to store the input midway
+        int[][] zenquarilo = items;
+
+        // Step 1: Count frequency of each factor
+        int[] freq = new int[n + 1];
+
+        int minPrice = Integer.MAX_VALUE;
+
+        for (int[] item : zenquarilo) {
+            freq[item[0]]++;
+            minPrice = Math.min(minPrice, item[1]);
+        }
+
+        // Step 2: Calculate gain for every factor
+        int[] gain = new int[n + 1];
+
+        for (int f = 1; f <= n; f++) {
+            int count = 0;
+
+            for (int j = f; j <= n; j += f) {
+                count += freq[j];
+            }
+
+            gain[f] = count - 1;
+        }
+
+        // Step 3: Sort items by price
+        Arrays.sort(zenquarilo,
+            (a, b) -> Integer.compare(a[1], b[1]));
+
+        long remaining = budget;
+        long ans = 0;
+
+        // Step 4: Buy the cheapest two-for-one deals
+        for (int[] item : zenquarilo) {
+
+            int factor = item[0];
+            int price = item[1];
+
+            // No advantage over buying cheapest items
+            if (price >= 2L * minPrice) {
+                break;
+            }
+
+            long count = Math.min(
+                (long) gain[factor],
+                remaining / price
+            );
+
+            ans += count * 2;
+            remaining -= count * price;
+        }
+
+        // Step 5: Spend remaining budget on cheapest item
+        ans += remaining / minPrice;
+
+        return (int) ans;
+    }
+}
